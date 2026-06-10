@@ -186,11 +186,43 @@
 - `package.json` — 修改：新增 expo-gl, expo-three, three, @types/three
 - Git commit: `9a7f5de` — "Day 4: 3D技术验证 - expo-gl + three.js 立方体渲染成功"
 - GitHub push: ✅
-## Day 5 — 待开始
+## Day 5 — 2026-06-10：3D 空间场景 + 立方体加载 ✅ 完成
+
+### 计划任务
+
+| 步骤 | 内容 | 状态 |
+|------|------|------|
+| 5.1 | 新建 storageStore (Zustand) — 按 roomId CRUD | ✅ |
+| 5.2 | room3d.tsx 顶部房间选择器（chip 标签栏切换） | ✅ |
+| 5.3 | 重构 CubeDemo → 接收 room 参数，按比例渲染地板+三面半透明墙+光照 | ✅ |
+| 5.4 | 加载 storageUnit 数据渲染为彩色立方体（位置/尺寸/颜色） | ✅ |
+| 5.5 | FAB "+" 按钮添加新立方体（默认 1×1×1） | ✅ |
+| 5.6 | tsc + Web 验证 + git commit | ✅ |
+
+### 额外修复
+
+| 修复 | 内容 |
+|------|------|
+| 旋转速度 | `gestureState.dx/dy` 是累计位移非帧间增量，改为增量计算（`deltaX = g.dx - prevDx`），最终灵敏度 0.005 |
 
 ### 会话分享链接
 
-- （待记录）
+- https://opncd.ai/share/OZe65QBT
+
+### 遗留问题
+
+- 无
+
+### 本次会话创建/修改的文件
+
+- `stores/storageStore.ts` — 新建
+- `app/(tabs)/room3d.tsx` — 重写：房间选择器 + 场景容器 + FAB
+- `components/CubeDemo.tsx` — 重写：props 驱动（roomId/ratioX/ratioZ/units/version），按比例地板+半透明墙+立方体渲染，增量旋转
+- `memory-bank/product-plan.md` — 新增 §12.6 会话分享链接备份流程
+- `memory-bank/daily-log.md` — 新增加分享链接字段
+- Git commit: `06aae8e` — "Day 5: 3D空间场景 - 房间比例地板+半透明墙+立方体加载与添加"
+
+---
 
 ## Day 6 — 待开始
 
