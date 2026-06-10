@@ -54,14 +54,14 @@ export default function RoomsScreen() {
                   ]}
                 >
                   <Text style={styles.cardRatio}>
-                    {item.ratio_x}:{item.ratio_z}
+                    {item.ratio_x.toFixed(1)}×{item.ratio_z.toFixed(1)}
                   </Text>
                 </View>
               </View>
               <View style={styles.cardInfo}>
                 <Text style={styles.cardName}>{item.name}</Text>
                 <Text style={styles.cardMeta}>
-                  比例 {item.ratio_x}:1:{item.ratio_z}
+                  {item.ratio_x.toFixed(1)} × {item.ratio_z.toFixed(1)} 米
                 </Text>
               </View>
               <TouchableOpacity

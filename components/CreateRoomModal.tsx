@@ -10,30 +10,30 @@ interface CreateRoomModalProps {
 }
 
 const RATIO_PRESETS = [
-  { label: '方形', x: 3, z: 3 },
-  { label: '标准', x: 3, z: 2 },
-  { label: '长形', x: 4, z: 2 },
-  { label: '细长', x: 5, z: 2 },
+  { label: '方形', x: 3.0, z: 3.0 },
+  { label: '标准', x: 4.0, z: 3.0 },
+  { label: '长形', x: 5.0, z: 3.0 },
+  { label: '细长', x: 6.0, z: 2.5 },
 ];
 
 export default function CreateRoomModal({ visible, onClose, onCreate }: CreateRoomModalProps) {
   const [name, setName] = useState('');
-  const [ratioX, setRatioX] = useState(3);
-  const [ratioZ, setRatioZ] = useState(2);
+  const [ratioX, setRatioX] = useState(4.0);
+  const [ratioZ, setRatioZ] = useState(3.0);
 
   const handleCreate = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
     onCreate(trimmed, ratioX, ratioZ);
     setName('');
-    setRatioX(3);
-    setRatioZ(2);
+    setRatioX(4.0);
+    setRatioZ(3.0);
   };
 
   const handleClose = () => {
     setName('');
-    setRatioX(3);
-    setRatioZ(2);
+    setRatioX(4.0);
+    setRatioZ(3.0);
     onClose();
   };
 
@@ -53,10 +53,10 @@ export default function CreateRoomModal({ visible, onClose, onCreate }: CreateRo
             autoFocus
           />
 
-          <Text style={styles.label}>长宽比例</Text>
+          <Text style={styles.label}>房间尺寸（米）</Text>
           <View style={styles.preview}>
             <View style={[styles.previewRoom, { aspectRatio: ratioX / ratioZ }]}>
-              <Text style={styles.previewLabel}>{ratioX} : {ratioZ}</Text>
+              <Text style={styles.previewLabel}>{ratioX.toFixed(1)} × {ratioZ.toFixed(1)} 米</Text>
             </View>
           </View>
 
@@ -76,18 +76,18 @@ export default function CreateRoomModal({ visible, onClose, onCreate }: CreateRo
                     ratioX === p.x && ratioZ === p.z && styles.presetTextActive,
                   ]}
                 >
-                  {p.label} ({p.x}:{p.z})
+                  {p.label} ({p.x}×{p.z})
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          <Text style={styles.label}>长 (X): {ratioX}</Text>
+          <Text style={styles.label}>长：{ratioX.toFixed(1)} 米</Text>
           <Slider
             style={styles.slider}
-            minimumValue={1}
-            maximumValue={6}
-            step={1}
+            minimumValue={1.0}
+            maximumValue={8.0}
+            step={0.1}
             value={ratioX}
             onValueChange={setRatioX}
             minimumTrackTintColor={Colors.primary}
@@ -95,12 +95,12 @@ export default function CreateRoomModal({ visible, onClose, onCreate }: CreateRo
             thumbTintColor={Colors.primary}
           />
 
-          <Text style={styles.label}>宽 (Z): {ratioZ}</Text>
+          <Text style={styles.label}>宽：{ratioZ.toFixed(1)} 米</Text>
           <Slider
             style={styles.slider}
-            minimumValue={1}
-            maximumValue={6}
-            step={1}
+            minimumValue={1.0}
+            maximumValue={8.0}
+            step={0.1}
             value={ratioZ}
             onValueChange={setRatioZ}
             minimumTrackTintColor={Colors.primary}
@@ -174,15 +174,15 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.primary,
     borderStyle: 'dashed',
-    width: '80%',
-    maxWidth: 200,
-    height: 80,
+    width: '100%',
+    maxWidth: 280,
+    height: 100,
     justifyContent: 'center',
     alignItems: 'center',
   },
   previewLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
     color: Colors.primary,
   },
   presets: {
