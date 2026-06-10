@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Colors, FontSize, FontWeight, Radius, Spacing, Shadow } from '../constants/theme';
 
@@ -83,30 +83,58 @@ export default function CreateRoomModal({ visible, onClose, onCreate }: CreateRo
           </View>
 
           <Text style={styles.label}>长：{ratioX.toFixed(1)} 米</Text>
-          <Slider
-            style={styles.slider}
-            minimumValue={1.0}
-            maximumValue={8.0}
-            step={0.1}
-            value={ratioX}
-            onValueChange={setRatioX}
-            minimumTrackTintColor={Colors.primary}
-            maximumTrackTintColor={Colors.border}
-            thumbTintColor={Colors.primary}
-          />
+          {Platform.OS === 'web' ? (
+            <View style={styles.webSlider}>
+              <input
+                type="range"
+                min={1.0}
+                max={12.0}
+                step={0.1}
+                value={ratioX}
+                onInput={(e) => setRatioX(parseFloat((e.target as HTMLInputElement).value))}
+                style={{ width: '100%', height: 20, accentColor: Colors.primary }}
+              />
+            </View>
+          ) : (
+            <Slider
+              style={styles.slider}
+              minimumValue={1.0}
+              maximumValue={12.0}
+              step={0.1}
+              value={ratioX}
+              onValueChange={(v) => setRatioX(Math.round(v * 10) / 10)}
+              minimumTrackTintColor={Colors.primary}
+              maximumTrackTintColor={Colors.border}
+              thumbTintColor={Colors.primary}
+            />
+          )}
 
           <Text style={styles.label}>宽：{ratioZ.toFixed(1)} 米</Text>
-          <Slider
-            style={styles.slider}
-            minimumValue={1.0}
-            maximumValue={8.0}
-            step={0.1}
-            value={ratioZ}
-            onValueChange={setRatioZ}
-            minimumTrackTintColor={Colors.primary}
-            maximumTrackTintColor={Colors.border}
-            thumbTintColor={Colors.primary}
-          />
+          {Platform.OS === 'web' ? (
+            <View style={styles.webSlider}>
+              <input
+                type="range"
+                min={1.0}
+                max={12.0}
+                step={0.1}
+                value={ratioZ}
+                onInput={(e) => setRatioZ(parseFloat((e.target as HTMLInputElement).value))}
+                style={{ width: '100%', height: 20, accentColor: Colors.primary }}
+              />
+            </View>
+          ) : (
+            <Slider
+              style={styles.slider}
+              minimumValue={1.0}
+              maximumValue={12.0}
+              step={0.1}
+              value={ratioZ}
+              onValueChange={(v) => setRatioZ(Math.round(v * 10) / 10)}
+              minimumTrackTintColor={Colors.primary}
+              maximumTrackTintColor={Colors.border}
+              thumbTintColor={Colors.primary}
+            />
+          )}
 
           <View style={styles.actions}>
             <TouchableOpacity style={styles.cancelBtn} onPress={handleClose}>
@@ -214,6 +242,10 @@ const styles = StyleSheet.create({
   slider: {
     width: '100%',
     height: 40,
+  },
+  webSlider: {
+    width: '100%',
+    paddingVertical: Spacing.sm,
   },
   actions: {
     flexDirection: 'row',
