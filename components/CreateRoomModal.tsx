@@ -84,17 +84,17 @@ export default function CreateRoomModal({ visible, onClose, onCreate }: CreateRo
 
           <Text style={styles.label}>长：{ratioX.toFixed(1)} 米</Text>
           {Platform.OS === 'web' ? (
-            <View style={styles.webSlider}>
-              <input
-                type="range"
-                min={1.0}
-                max={12.0}
-                step={0.1}
-                value={ratioX}
-                onInput={(e) => setRatioX(parseFloat((e.target as HTMLInputElement).value))}
-                style={{ width: '100%', height: 20, accentColor: Colors.primary }}
-              />
-            </View>
+            <input
+              type="range"
+              min={1.0}
+              max={12.0}
+              step={0.1}
+              value={ratioX}
+              onInput={(e) => {
+                setRatioX(parseFloat((e.target as HTMLInputElement).value));
+              }}
+              style={{ width: '100%', height: 20, accentColor: Colors.primary }}
+            />
           ) : (
             <Slider
               style={styles.slider}
@@ -111,17 +111,17 @@ export default function CreateRoomModal({ visible, onClose, onCreate }: CreateRo
 
           <Text style={styles.label}>宽：{ratioZ.toFixed(1)} 米</Text>
           {Platform.OS === 'web' ? (
-            <View style={styles.webSlider}>
-              <input
-                type="range"
-                min={1.0}
-                max={12.0}
-                step={0.1}
-                value={ratioZ}
-                onInput={(e) => setRatioZ(parseFloat((e.target as HTMLInputElement).value))}
-                style={{ width: '100%', height: 20, accentColor: Colors.primary }}
-              />
-            </View>
+            <input
+              type="range"
+              min={1.0}
+              max={12.0}
+              step={0.1}
+              value={ratioZ}
+              onInput={(e) => {
+                setRatioZ(parseFloat((e.target as HTMLInputElement).value));
+              }}
+              style={{ width: '100%', height: 20, accentColor: Colors.primary }}
+            />
           ) : (
             <Slider
               style={styles.slider}
@@ -204,7 +204,6 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     width: '100%',
     maxWidth: 280,
-    height: 100,
     justifyContent: 'center',
     alignItems: 'center',
   },
