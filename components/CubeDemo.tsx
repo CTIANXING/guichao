@@ -13,20 +13,27 @@ interface CubeDemoProps {
   ratioX: number;
   ratioZ: number;
   units: StorageUnit[];
-  version: number;
+  selectedUnitId: string | null;
+  selectedUnitName?: string;
+  onUnitSelect?: (unitId: string) => void;
 }
 
 function hexToColor(hex: string): THREE.Color {
   return new THREE.Color(hex);
 }
 
-export default function CubeDemo({ roomId, ratioX, ratioZ, units, version }: CubeDemoProps) {
+export default function CubeDemo({ roomId, ratioX, ratioZ, units, selectedUnitId, selectedUnitName, onUnitSelect }: CubeDemoProps) {
   const isDraggingRef = useRef(false);
   const sphericalRef = useRef({ theta: 0, phi: Math.PI / 4 });
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const cubeGroupRef = useRef<THREE.Group | null>(null);
   const prevDxRef = useRef(0);
   const prevDyRef = useRef(0);
+  const containerSizeRef = useRef({ width: 1, height: 1 });
+  const tapOriginRef = useRef({ x: 0, y: 0 });
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const cubeGroupRef = useRef<THREE.Group | null>(null);
+  const cubeMeshMapRef = useRef<Map<string, THREE.Mesh>>(new Map());
+  const selIdRef = useRef(selectedUnitId);
+  selIdRef.current = selectedUnitId;
 
   const roomW = ratioX * BASE_UNIT;
   const roomD = ratioZ * BASE_UNIT;
@@ -38,10 +45,14 @@ export default function CubeDemo({ roomId, ratioX, ratioZ, units, version }: Cub
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
+      onPanResponderGrant: (evt) => {
         isDraggingRef.current = true;
         prevDxRef.current = 0;
         prevDyRef.current = 0;
+        tapOriginRef.current = {
+          x: evt.nativeEvent.locationX ?? 0,
+          y: evt.nativeEvent.locationY ?? 0,
+        };
       },
       onPanResponderMove: (_, g) => {
         if (!isDraggingRef.current) return;
@@ -54,11 +65,57 @@ export default function CubeDemo({ roomId, ratioX, ratioZ, units, version }: Cub
         s.phi -= deltaY * 0.005;
         s.phi = Math.max(0.1, Math.min(1.4, s.phi));
       },
-      onPanResponderRelease: () => { isDraggingRef.current = false; },
+      onPanResponderRelease: (evt) => {
+        const x = evt.nativeEvent.locationX ?? 0;
+        const y = evt.nativeEvent.locationY ?? 0;
+        const dx = Math.abs(x - tapOriginRef.current.x);
+        const dy = Math.abs(y - tapOriginRef.current.y);
+        if (dx < 5 && dy < 5) {
+          runRaycaster(x, y);
+        }
+        isDraggingRef.current = false;
+      },
     })
   ).current;
 
-  const onContextCreate = useCallback(async (gl: any) => {
+  function runRaycaster(x: number, y: number) {
+    const cam = cameraRef.current;
+    const map = cubeMeshMapRef.current;
+    if (!cam || map.size === 0) return;
+    const { width, height } = containerSizeRef.current;
+    const ndcX = (x / width) * 2 - 1;
+    const ndcY = -(y / height) * 2 + 1;
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), cam);
+    const meshes = Array.from(map.values());
+    const intersects = raycaster.intersectObjects(meshes);
+    if (intersects.length > 0) {
+      let obj: THREE.Object3D | null = intersects[0].object;
+      while (obj) {
+        if (obj.userData?.unitId) {
+          onUnitSelect?.(obj.userData.unitId as string);
+          return;
+        }
+        obj = obj.parent;
+      }
+    }
+  }
+
+  function rebuildCubes() {
+    const group = cubeGroupRef.current;
+    if (!group) return;
+    while (group.children.length > 0) {
+      group.remove(group.children[0]);
+    }
+    cubeMeshMapRef.current.clear();
+    units.forEach((u) => {
+      const mesh = addUnitCube(group, u);
+      cubeMeshMapRef.current.set(u.id, mesh);
+    });
+    applyHighlight(selectedUnitId);
+  }
+
+  const onContextCreate = useCallback((gl: any) => {
     const renderer = new Renderer({ gl });
     const w = gl.drawingBufferWidth;
     const h = gl.drawingBufferHeight;
@@ -66,7 +123,6 @@ export default function CubeDemo({ roomId, ratioX, ratioZ, units, version }: Cub
     renderer.setClearColor(0xf5f5f7);
 
     const scene = new THREE.Scene();
-    sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
     cameraRef.current = camera;
@@ -77,21 +133,17 @@ export default function CubeDemo({ roomId, ratioX, ratioZ, units, version }: Cub
     dirLight.position.set(5, 10, 5);
     scene.add(dirLight);
 
-    // Floor
     const floorGeo = new THREE.PlaneGeometry(roomW, roomD);
     const floorMat = new THREE.MeshStandardMaterial({ color: 0xe8e8e0, roughness: 0.7 });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0;
     scene.add(floor);
 
-    // Grid
     const maxDim = Math.max(roomW, roomD);
     const grid = new THREE.GridHelper(maxDim, Math.round(maxDim), 0xcccccc, 0xeeeeee);
     grid.position.y = 0.01;
     scene.add(grid);
 
-    // Walls
     const wallMat = new THREE.MeshStandardMaterial({
       color: 0xeeeeff,
       roughness: 0.5,
@@ -119,13 +171,10 @@ export default function CubeDemo({ roomId, ratioX, ratioZ, units, version }: Cub
     makeWall(new THREE.PlaneGeometry(roomD, wallH), -hw, wallH / 2, 0, Math.PI / 2);
     makeWall(new THREE.PlaneGeometry(roomD, wallH), hw, wallH / 2, 0, -Math.PI / 2);
 
-    // Cubes group
     const cubeGroup = new THREE.Group();
     scene.add(cubeGroup);
     cubeGroupRef.current = cubeGroup;
-
-    // Initial cubes
-    units.forEach((u) => addUnitCube(cubeGroup, u));
+    rebuildCubes();
 
     const animate = () => {
       requestAnimationFrame(animate);
@@ -138,35 +187,49 @@ export default function CubeDemo({ roomId, ratioX, ratioZ, units, version }: Cub
       camera.position.set(cx, cy, cz);
       camera.lookAt(0, wallH * 0.2, 0);
 
+      applyHighlight(selIdRef.current);
+
       renderer.render(scene, camera);
       gl.endFrameEXP();
     };
     animate();
-  }, [roomW, roomD, wallH, hw, hd, units]);
+  }, [roomW, roomD, wallH, hw, hd]);
 
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  function applyHighlight(unitId: string | null) {
+    cubeMeshMapRef.current.forEach((mesh, id) => {
+      const edge = mesh.children.find((c) => (c as THREE.LineSegments).isLineSegments) as THREE.LineSegments | undefined;
+      if (edge) {
+        (edge.material as THREE.LineBasicMaterial).color.set(id === unitId ? '#2D5BFF' : '#888888');
+      }
+    });
+  }
 
   useEffect(() => {
-    if (!cubeGroupRef.current || !sceneRef.current) return;
-    while (cubeGroupRef.current.children.length > 0) {
-      cubeGroupRef.current.remove(cubeGroupRef.current.children[0]);
-    }
-    units.forEach((u) => addUnitCube(cubeGroupRef.current!, u));
-  }, [units]);
+    rebuildCubes();
+  }, [units, selectedUnitId]);
 
   return (
-    <View style={styles.container} {...panResponder.panHandlers}>
-      <GLView style={styles.glView} onContextCreate={onContextCreate} key={`${roomId}-${version}`} />
+    <View
+      style={styles.container}
+      {...panResponder.panHandlers}
+      onLayout={(e) => {
+        containerSizeRef.current = {
+          width: e.nativeEvent.layout.width,
+          height: e.nativeEvent.layout.height,
+        };
+      }}
+    >
+      <GLView style={styles.glView} onContextCreate={onContextCreate} key={roomId} />
       <View style={styles.hint}>
         <Text style={styles.hintText}>
-          {ratioX.toFixed(1)}×{ratioZ.toFixed(1)} 米 · 拖动旋转视角
+          {selectedUnitName ? `已选中: ${selectedUnitName}` : `${ratioX.toFixed(1)}×${ratioZ.toFixed(1)} 米 · 点击方块编辑`}
         </Text>
       </View>
     </View>
   );
 }
 
-function addUnitCube(parent: THREE.Group, unit: StorageUnit) {
+function addUnitCube(parent: THREE.Group, unit: StorageUnit): THREE.Mesh {
   const geo = new THREE.BoxGeometry(unit.scale_x, unit.scale_y, unit.scale_z);
   const mat = new THREE.MeshStandardMaterial({
     color: hexToColor(unit.color),
@@ -182,6 +245,7 @@ function addUnitCube(parent: THREE.Group, unit: StorageUnit) {
 
   mesh.userData = { unitId: unit.id };
   parent.add(mesh);
+  return mesh;
 }
 
 const styles = StyleSheet.create({

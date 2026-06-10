@@ -1,15 +1,16 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors, FontSize, FontWeight, Radius, Spacing, Shadow } from '../../constants/theme';
 import { useRoomStore } from '../../stores/roomStore';
 import { useStorageStore } from '../../stores/storageStore';
 import CubeDemo from '../../components/CubeDemo';
+import UnitEditPanel from '../../components/UnitEditPanel';
 
 export default function Room3DScreen() {
   const { rooms, loadRooms } = useRoomStore();
-  const { units, loading, loadByRoomId, addUnit, deleteUnit } = useStorageStore();
+  const { units, loading, loadByRoomId, addUnit, updateUnit, deleteUnit } = useStorageStore();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
-  const [sceneVersion, setSceneVersion] = useState(0);
+  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
 
   useEffect(() => {
     loadRooms();
@@ -18,21 +19,38 @@ export default function Room3DScreen() {
   useEffect(() => {
     if (selectedRoomId) {
       loadByRoomId(selectedRoomId);
+      setSelectedUnitId(null);
     }
   }, [selectedRoomId]);
 
   const selectedRoom = rooms.find((r) => r.id === selectedRoomId);
   const roomUnits = selectedRoomId ? (units[selectedRoomId] || []) : [];
+  const selectedUnit = selectedUnitId ? roomUnits.find((u) => u.id === selectedUnitId) : undefined;
+
+  const roomUnitsRef = useRef(roomUnits);
+  roomUnitsRef.current = roomUnits;
 
   const handleAddUnit = useCallback(async () => {
     if (!selectedRoomId) return;
-    await addUnit({ room_id: selectedRoomId });
-    setSceneVersion((v) => v + 1);
+    const count = roomUnitsRef.current.length;
+    const col = count % 4;
+    const row = Math.floor(count / 4);
+    await addUnit({
+      room_id: selectedRoomId,
+      pos_x: col * 2.5 - 3.75,
+      pos_z: row * 2.5,
+      pos_y: 0,
+    });
   }, [selectedRoomId, addUnit]);
 
-  const refreshScene = useCallback(() => {
-    setSceneVersion((v) => v + 1);
-  }, []);
+  const handleUpdateUnit = useCallback(async (id: string, updates: any) => {
+    await updateUnit(id, updates);
+  }, [updateUnit]);
+
+  const handleDeleteUnit = useCallback(async (id: string) => {
+    setSelectedUnitId(null);
+    await deleteUnit(id);
+  }, [deleteUnit]);
 
   if (rooms.length === 0) {
     return (
@@ -86,12 +104,25 @@ export default function Room3DScreen() {
             ratioX={selectedRoom.ratio_x}
             ratioZ={selectedRoom.ratio_z}
             units={roomUnits}
-            version={sceneVersion}
+            selectedUnitId={selectedUnitId}
+            selectedUnitName={selectedUnit?.name}
+            onUnitSelect={setSelectedUnitId}
           />
           <TouchableOpacity style={styles.fab} onPress={handleAddUnit} activeOpacity={0.8}>
             <Text style={styles.fabText}>+</Text>
           </TouchableOpacity>
         </View>
+      )}
+
+      {selectedUnit && (
+        <UnitEditPanel
+          visible={!!selectedUnit}
+          unit={selectedUnit}
+          siblingUnits={roomUnits}
+          onClose={() => setSelectedUnitId(null)}
+          onUpdate={handleUpdateUnit}
+          onDelete={handleDeleteUnit}
+        />
       )}
     </View>
   );
