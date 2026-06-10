@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useState, useMemo } from 'react';
+import { LayoutChangeEvent, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Colors, FontSize, FontWeight, Radius, Spacing, Shadow } from '../constants/theme';
 
@@ -20,6 +20,15 @@ export default function CreateRoomModal({ visible, onClose, onCreate }: CreateRo
   const [name, setName] = useState('');
   const [ratioX, setRatioX] = useState(4.0);
   const [ratioZ, setRatioZ] = useState(3.0);
+  const [containerW, setContainerW] = useState(280);
+  const [containerH, setContainerH] = useState(180);
+
+  const boxSize = useMemo(() => {
+    const maxW = containerW - 4;
+    const maxH = containerH - 4;
+    const scale = Math.min(maxW / ratioX, maxH / ratioZ);
+    return { width: ratioX * scale, height: ratioZ * scale };
+  }, [ratioX, ratioZ, containerW, containerH]);
 
   const handleCreate = () => {
     const trimmed = name.trim();
@@ -35,6 +44,12 @@ export default function CreateRoomModal({ visible, onClose, onCreate }: CreateRo
     setRatioX(4.0);
     setRatioZ(3.0);
     onClose();
+  };
+
+  const handlePreviewLayout = (e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    if (width > 0) setContainerW(width);
+    if (height > 0) setContainerH(height);
   };
 
   return (
@@ -54,9 +69,11 @@ export default function CreateRoomModal({ visible, onClose, onCreate }: CreateRo
           />
 
           <Text style={styles.label}>房间尺寸（米）</Text>
-          <View style={styles.preview}>
-            <View style={[styles.previewRoom, { aspectRatio: ratioX / ratioZ }]}>
-              <Text style={styles.previewLabel}>{ratioX.toFixed(1)} × {ratioZ.toFixed(1)} 米</Text>
+          <View style={styles.preview} onLayout={handlePreviewLayout}>
+            <View style={[styles.previewRoom, { width: boxSize.width, height: boxSize.height }]}>
+              <Text style={styles.previewLabel}>
+                {ratioX.toFixed(1)} × {ratioZ.toFixed(1)} 米
+              </Text>
             </View>
           </View>
 
@@ -167,6 +184,9 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     paddingBottom: Spacing.xxl,
     maxHeight: '90%',
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
   },
   title: {
     fontSize: FontSize.xl,
@@ -194,16 +214,18 @@ const styles = StyleSheet.create({
   },
   preview: {
     alignItems: 'center',
+    justifyContent: 'center',
+    height: 180,
+    backgroundColor: Colors.background,
+    borderRadius: Radius.md,
     marginVertical: Spacing.md,
   },
   previewRoom: {
     backgroundColor: Colors.primaryLight,
-    borderRadius: Radius.md,
+    borderRadius: Radius.sm,
     borderWidth: 2,
     borderColor: Colors.primary,
     borderStyle: 'dashed',
-    width: '100%',
-    maxWidth: 280,
     justifyContent: 'center',
     alignItems: 'center',
   },
